@@ -128,23 +128,15 @@ router.post('/api/v1/register', upload.single('profile'), async function(req, re
       status
     });
     let save = await Newuser.save()
-    res.status(200).send(save);
+    res.status(200).send({data:save, message:"Register Success",success:true});
   }catch(error){
-    res.status(500).send(error.toString());
+    res.status(500).send({data:error.toString(),message:"Register fail",success:false});
   }
 });
 
 /*approve admin*/
 
-router.put('/api/v1/approve/:id', async function(req, res, next) {
-  try {
-    let { status } = req.body;
-    let update = await userSchema.findByIdAndUpdate(req.params.id, { status: status }, { new: true });
-    return res.status(200).send({ status: update.status });
-  } catch(error) {
-    res.status(500).send(error.toString());
-  }
-});
+
 
 /*Add Order*/
 router.post('/api/v1/products/:id/order', async function(req, res, next) {
@@ -176,19 +168,62 @@ router.post('/api/v1/products/:id/order', async function(req, res, next) {
           quantity,
           total
       });
-      let createOrder = await order.save();
-      product.unit -= quantity;
-      await product.save();
-
-      return res.status(201).send({
+      if (quantity <= product.unit){
+        let createOrder = await order.save();
+        product.unit -= quantity;
+        await product.save();
+        return res.status(201).send({
           data: createOrder,
           message: 'Create Order Success',
-          success: true,
-      });
+          success: true,});
+      }
+      else{
+        return res.status(400).send({
+          message: 'Create Order Fail',
+          success: false,});
+      }
   } catch (error) {
       return res.status(500).send({
           message: 'Create Order Fail',
           success: false,
+      });
+  }
+});
+
+/*Login*/
+router.post('/api/v1/login', async function(req, res, next) {
+  try {
+      let { name, pass } = req.body;
+      const user = await userSchema.findOne({ name });
+      const usernameorder = await orderSchema.findOne({name: name});
+      if (!user) {
+          return res.status(404).send({
+              message: 'User not found',
+              success: false
+          });
+      }
+      const checkPass = await bcrypt.compare(pass, user.pass);
+      if (!checkPass) {
+          return res.status(401).send({
+              message: 'Invalid password',
+              success: false
+          });
+      }if(user.status=="0"){
+          return res.status(404).send({
+              message: 'User not Active',
+              success: false
+          });
+      }
+      return res.status(200).send({
+          data: user,
+          order_data : usernameorder,
+          message: 'Login success',
+          success: true
+      });
+  } catch (error) {
+      return res.status(500).send({
+          message: 'Login fail',
+          success: false
       });
   }
 });

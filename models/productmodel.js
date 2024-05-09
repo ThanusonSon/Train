@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const productSchema = new Schema({
-  productname: {type: String, unique: true, required: true},
+  productname: {type: String, required: true},
   price: {type: Number},
   unit: {type: Number},
   file: {type:String},
